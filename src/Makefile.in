@@ -1,0 +1,44 @@
+
+# @configure_input@
+
+prefix  = @prefix@
+bindir	= $(prefix)/bin
+sysconfdir	= $(prefix)/etc/ipbl
+CONFIGFILE	= $(sysconfdir)/ipbl.conf
+INSTALL	= @INSTALL@
+TARGET	= ipbl
+VERSION	= @PACKAGE_VERSION@
+
+CFLAGS	= @CFLAGS@ @PTHREAD_CFLAGS@
+LDFLAGS = @LDFLAGS@
+LIBS	= @LIBS@ @PTHREAD_LIBS@ -lcurl
+CC	= @CC@
+INCLUDES	= -I /usr/include/libnetfilter_queue -I /usr/include/ldns -I .
+
+
+all: ipbl
+
+ipbl: config.h ipbl.c ipbl.h directresolv.h macrometa.c macrometa.h curlwrapper.h curlwrapper.c
+	$(CC) $(CFLAGS) $(LDFLAGS) ipbl.c macrometa.c curlwrapper.c -o ../bin/ipbl $(LIBS) $(INCLUDES)
+
+
+clean:
+	-rm -f ipbl.o ../bin/ipbl ../ipbl_$(VERSION).deb
+
+distclean:
+	-rm -f Makefile ipbl.o ../bin/ipbl config.log config.status config.h ../ipbl_$(VERSION).deb
+	
+deb: all
+	/bin/bash ./gen_package.sh $(prefix)
+
+install: deb
+	-$(INSTALL) -d $(bindir)
+	-$(INSTALL) -d $(sysconfdir)
+	@if [ -f "$(CONFIGFILE)" ]; then \
+	echo "$(INSTALL) -m 644 config $(CONFIGFILE).dist"; \
+	$(INSTALL) -m 644 config $(CONFIGFILE).dist;  \
+	else \
+	echo "$(INSTALL) -m 644 config $(CONFIGFILE)"; \
+	$(INSTALL) -m 644 config $(CONFIGFILE);  \
+	fi
+	$(INSTALL) -m 755 ../bin/ipbl $(bindir)/ipbl
