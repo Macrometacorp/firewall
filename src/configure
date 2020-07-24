@@ -1818,11 +1818,13 @@ fi
 
 
 # Check whether --with-cache was given.
-if test "${with_cache+set}" = set; then
-  withval=$with_cache; ac_cv_use_cache=yes
-else
-  ac_cv_use_cache=no
-fi
+#if test "${with_cache+set}" = set; then
+#  withval=$with_cache; ac_cv_use_cache=yes
+#else
+#  ac_cv_use_cache=no
+#fi
+  
+ac_cv_use_cache=yes
 
 
 ac_aux_dir=

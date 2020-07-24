@@ -47,6 +47,8 @@
 #include "directresolv.h"
 #include <macrometa.h>
 
+#define USE_CACHE
+
 #ifdef USE_SOCKSTAT
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -72,7 +74,7 @@
 #    define USE_CACHE_DEF_LEN 8192
 #  endif
 #  ifndef USE_CACHE_DEF_TTL
-#    define USE_CACHE_DEF_TTL 3600
+#    define USE_CACHE_DEF_TTL 300
 #  endif
 #endif
 
@@ -95,6 +97,7 @@
 
 #define DEBUG(x, y) if (conf.debug >= x) { printf(y "\n"); }
 #define LOGGING(x, de, string) if (conf.debug >= x) { printf(y "\n"); }
+
 
 struct packet_info {
 
@@ -156,6 +159,8 @@ int arg_quiet = 0;
 char * packetbl_configfile = NULL;
 char * packetbl_pidfile = NULL;
 
+char ipblc_id[255] = {'\0'};
+
 // to query to a alternative nameserver
 
 struct bl_context {
@@ -209,7 +214,7 @@ struct config {
 	int	debug;
 	int	queue_size;
 	int	threads_max;
-    char* macrometa_api_url;
+    char* macrometa_endpoint;
     char* macrometa_app_key;
 };
 static struct config conf = { 0, 0, 1, 0, LOG_DAEMON, 5, 0, 1, NULL, NULL, 0, 0, 0};
@@ -275,7 +280,7 @@ static const configoption_t options[] = {
 	{"whitelist", ARG_STR, common_option, NULL, O_HOSTSECTION},
 	{"blacklist", ARG_STR, common_option, NULL, O_HOSTSECTION},
 	{"macrometaappkey", ARG_STR, toggle_option, NULL, O_HOSTSECTION},
-	{"macrometaapiurl", ARG_STR, toggle_option, NULL, O_HOSTSECTION},
+	{"macrometaendpoint", ARG_STR, toggle_option, NULL, O_HOSTSECTION},
 	{"fallthroughaccept", ARG_TOGGLE, toggle_option, NULL, O_ROOT},
 	{"allownonport25", ARG_TOGGLE, toggle_option, NULL, O_ROOT},
 	{"allownonsyn", ARG_TOGGLE, toggle_option, NULL, O_ROOT},
@@ -827,6 +832,12 @@ int main(int argc, char **argv) {
 	logmsg(0, LOG_DEBUG, "Debug level %d", conf.debug);
 	logmsg(0, LOG_DEBUG, "Linking to queue %d", conf.queueno);
 
+    if (register_machine(conf.macrometa_app_key, conf.macrometa_endpoint, ipblc_id) != 0)
+    {
+        logmsg(0, LOG_ERR, "Failed to register machine!");
+        return -1;
+    }
+
 	if (conf.debug == 0) {
 		daemonize();
 	}
@@ -1199,16 +1210,12 @@ DOTCONF_CB(toggle_option) {
 	}
 
 	if (strcasecmp(cmd->name, "macrometaappkey") == 0) {
-		conf.macrometa_app_key= (char *)strdup(cmd->data.str);
-//		size_t sizechain = strlen(conf.macrometa_app_key);
-//		conf.macrometa_app_key[sizechain-1]='\0';
+		conf.macrometa_app_key = (char *)strdup(cmd->data.str);
 		return NULL;
 	}
 
-	if (strcasecmp(cmd->name, "macrometaapiurl") == 0) {
-		conf.macrometa_api_url= (char *)strdup(cmd->data.str);
-//		size_t sizechain = strlen(conf.macrometa_api_url);
-//		conf.macrometa_api_url[sizechain-1]='\0';
+	if (strcasecmp(cmd->name, "macrometaendpoint") == 0) {
+		conf.macrometa_endpoint= (char *)strdup(cmd->data.str);
 		return NULL;
 	}
 
@@ -1683,7 +1690,7 @@ int check_packet_dnsbl(const struct packet_info *ip, struct config_entry *list) 
 		{
 			logmsg(1, LOG_DEBUG, "Sending to optional macrometa %s", lookupbuf);
 
-			if (is_blacklisted_mm(lookupbuf, conf.macrometa_app_key, conf.macrometa_api_url))
+			if (is_blacklisted_mm(lookupbuf, conf.macrometa_app_key, conf.macrometa_endpoint, ipblc_id))
 			{
 				// found
 				logmsg(-1, LOG_NOTICE, "The IP %s was found in the domain", lookupbuf);
@@ -1708,7 +1715,7 @@ int check_packet_dnsbl(const struct packet_info *ip, struct config_entry *list) 
 //			if (host == NULL) {
 //endif
 //				;
-            if (!is_blacklisted_mm(lookupbuf, conf.macrometa_app_key, conf.macrometa_api_url)) {
+            if (!is_blacklisted_mm(lookupbuf, conf.macrometa_app_key, conf.macrometa_endpoint, ipblc_id)) {
 				logmsg(-1, LOG_NOTICE, "The IP %s was NOT found", lookupbuf);
 			} else {
 				// found.

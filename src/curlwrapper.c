@@ -88,15 +88,23 @@ struct curl_response* execute_curl_request(struct curl_request* req)
     {
         struct curl_slist *headers=NULL;
         char header[MAX_BODY] = {'\0'};
-        strcat(header, "Authorization: ");
+        strcat(header, "X-API-KEY: ");
         strncat(header, req->authorization, MAX_BODY - strlen(header));
         headers = curl_slist_append(headers, header);
+
+        if (strlen(req->x_ipblc_id) > 0)
+        {
+            char header[MAX_BODY] = {'\0'};
+            strcat(header, "X-IPBLC-ID: ");
+            strncat(header, req->x_ipblc_id, MAX_BODY - strlen(header));
+            headers = curl_slist_append(headers, header);
+        }
         curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, headers);
     }
 
     CURLcode res = curl_easy_perform(curl_handle);
     if (res != 0) {
-        printf("Curl error %d", res);
+        printf("[%d] Curl error with url %s, err: %s\n", res, req->url, curl_easy_strerror(res));
         return NULL;
     }
     resp->code = parse_response_code(headers_buffer);
@@ -120,6 +128,7 @@ struct curl_request create_curl_request(const char* url)
     zero_init(req.url, sizeof(req.url));
     zero_init(req.data, sizeof(req.data));
     zero_init(req.authorization, sizeof(req.authorization));
+    zero_init(req.x_ipblc_id, sizeof(req.x_ipblc_id));
 
     strcpy(req.url, url);
 

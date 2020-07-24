@@ -6,6 +6,7 @@
 struct curl_request {
     char url[MAX_URL];
     char authorization[MAX_BODY]; 
+    char x_ipblc_id[MAX_URL];
     char data[MAX_BODY];
 };
 
