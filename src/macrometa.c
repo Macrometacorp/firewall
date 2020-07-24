@@ -104,6 +104,30 @@ int read_machine_id(char *machine_id)
     return 0;
 }
 
+int read_ipbl_id(char* machine_id) {
+    FILE *fp = fopen("ipbl.id", "r");
+    if (fp == NULL)
+    {
+        return -1;
+    }
+    char* res = fgets(machine_id, 255, (FILE*)fp);
+    fclose(fp);
+
+    return 0;
+}
+
+int save_ipbl_id(char* machine_id) {
+    FILE *fp = fopen("ipbl.id", "w");
+    if (fp == NULL)
+    {
+        return -1;
+    }
+    fputs(machine_id, (FILE*)fp);
+    fclose(fp);
+
+    return 0;
+}
+
 int register_machine(const char* app_key, const char* endpoint, char ipblc_id[MAX_BODY])
 {
     char url[MAX_URL] = "";
@@ -111,6 +135,12 @@ int register_machine(const char* app_key, const char* endpoint, char ipblc_id[MA
     strcat(url, REGISTER_ID_API_URL);
 
     char machine_id[255] = {'\0'};
+
+    if (read_ipbl_id(ipblc_id) == 0) {
+        //already registered
+        return 0;
+    }
+
     if (read_mac_address(machine_id) != 0)
     {
         printf("Failed to read mac address. Falling back to machine id.\n");
@@ -139,6 +169,8 @@ int register_machine(const char* app_key, const char* endpoint, char ipblc_id[MA
     if (resp->code == 200) 
     {
         strcpy(ipblc_id, resp->body);
+
+        save_ipbl_id(ipblc_id);
     }
     else
     {
