@@ -141,11 +141,10 @@ int register_machine(const char* app_key, const char* endpoint, char ipblc_id[MA
         return 0;
     }
 
-    if (read_mac_address(machine_id) != 0)
-    {
-        printf("Failed to read mac address. Falling back to machine id.\n");
-        if (read_machine_id(machine_id) != 0) {
-            printf("Failed to read machine id as well.\n");
+    if (read_machine_id(machine_id) != 0) {
+        printf("Failed to read machine id. Falling back to mac address.\n");
+        if (read_mac_address(machine_id) != 0) {
+            printf("Failed to read mac address as well.\n");
             return -4;
         }
     }
