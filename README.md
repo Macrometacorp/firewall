@@ -14,4 +14,7 @@ make
 make deb
 sudo dpkg -i ../ipbl_1.0.deb
 
+use this command to setup the hook:
+
+iptables -A INPUT -t filter -p tcp --dport 25 -j NFQUEUE --queue-num 0
 

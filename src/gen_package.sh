@@ -40,8 +40,17 @@ echo "#!/bin/bash
 
 $HEAD
 
+cp $PREFIX/etc/ipbl/example_config/ipbl.conf $PREFIX/etc/ipbl/
+
+echo -n 'Enter the app key: '
+read appkey
+
+cp $PREFIX/etc/ipbl/example_config/ipbl.conf $PREFIX/etc/ipbl/ipbl.conf
+sed -i \"s/PUT THE MACROMETA KEY HERE/\$appkey/\" $PREFIX/etc/ipbl/ipbl.conf
+
 chmod 755 ${BIN_DIR}/ipbl
-/etc/init.d/ipbl restart
+echo To restart the ipbl use: /etc/init.d/ipbl restart
+echo Iptables command: iptables -A INPUT -t filter -p tcp --dport 25 -j NFQUEUE --queue-num 0
 
 exit 0;" > $PACKAGE_DIR/DEBIAN/postinst
 echo "#!/bin/bash
